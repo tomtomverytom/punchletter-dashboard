@@ -49,6 +49,19 @@
     .header-sub { font-size: 12px; color: var(--color-text3); }
     .header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
+    /* 공유 링크 */
+    .share-box { background: var(--color-bg2); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 12px 14px; margin-bottom: 16px; display: none; }
+    .share-box-title { font-size: 11px; font-weight: 600; color: var(--color-text2); margin-bottom: 8px; display: flex; align-items: center; gap: 5px; }
+    .share-url-wrap { display: flex; gap: 8px; align-items: center; }
+    .share-url-input { flex: 1; border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 7px 10px; font-size: 11px; font-family: var(--font-mono); color: var(--color-text2); background: var(--color-bg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .share-url-input:focus { outline: none; }
+    .share-copied { font-size: 10px; color: var(--green); font-weight: 500; opacity: 0; transition: opacity 0.3s; white-space: nowrap; }
+    .share-note { font-size: 10px; color: var(--color-text3); margin-top: 6px; }
+
+    /* 공유 뷰 배너 */
+    .shared-banner { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius-md); padding: 10px 14px; margin-bottom: 16px; font-size: 12px; color: #1e40af; display: flex; align-items: center; gap: 8px; }
+    @media (prefers-color-scheme: dark) { .shared-banner { background: #1e3a5f; border-color: #3b82f6; color: #93c5fd; } }
+
     /* 버튼 */
     .btn { border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 6px 14px; font-size: 12px; background: transparent; color: var(--color-text2); cursor: pointer; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; font-family: var(--font); transition: background 0.1s; }
     .btn:hover { background: var(--color-bg2); }
@@ -207,10 +220,27 @@
       <div class="header-sub" id="lastUpdated">CSV 업로드 또는 데이터 붙여넣기로 시작하세요</div>
     </div>
     <div class="header-actions">
-      <button class="btn btn-primary" id="btnAnalyze" style="display:none;" onclick="alert('Claude.ai에서 AI 분석 버튼을 사용해 주세요.')">
-        <i class="ti ti-chart-bar"></i> AI 분석
+      <button class="btn" id="btnShare" style="display:none;" onclick="generateShareLink()">
+        <i class="ti ti-share"></i> 공유 링크 생성
       </button>
     </div>
+  </div>
+
+  <!-- 공유 뷰 배너 (공유 링크로 접속 시) -->
+  <div class="shared-banner" id="sharedBanner" style="display:none;">
+    <i class="ti ti-info-circle"></i>
+    <span id="sharedBannerText">공유된 대시보드입니다.</span>
+  </div>
+
+  <!-- 공유 링크 박스 -->
+  <div class="share-box" id="shareBox">
+    <div class="share-box-title"><i class="ti ti-link"></i> 팀원 공유 링크</div>
+    <div class="share-url-wrap">
+      <input class="share-url-input" id="shareUrlInput" readonly>
+      <button class="btn btn-primary" onclick="copyShareLink()"><i class="ti ti-copy"></i> 복사</button>
+    </div>
+    <span class="share-copied" id="shareCopied">✓ 클립보드에 복사됐어요!</span>
+    <div class="share-note">이 링크를 팀원에게 공유하세요. 링크를 열면 현재 데이터가 채워진 대시보드를 바로 볼 수 있어요.</div>
   </div>
 
   <!-- 필터 -->
@@ -391,14 +421,20 @@ function parseCSV(text){const rows=[];let cur=[],field='',inQ=false;for(let i=0;
 function parseTSV(text){return text.split('\n').map(l=>l.split('\t').map(c=>c.trim())).filter(r=>r.some(c=>c));}
 function rowsToData(rows){return rows.slice(2).filter(r=>r[0]&&!['합계','콘텐츠','상위 500개 결과 표시'].includes(r[0].trim())).map(r=>({id:String(r[0]||'').trim(),title:String(r[1]||'').trim().split('\n')[0],date:parseDate(r[2]),dateDisp:fmtDate(parseDate(r[2])),dur:parseInt(r[3])||0,avdSec:parseAVD(r[4]),vr:parseFloat(r[5])||0,newV:parseInt(r[6])||0,ret:parseInt(r[7])||0,views:parseInt(r[8])||0,wh:parseFloat(r[9])||0,subs:parseInt(r[10])||0,imp:parseInt(r[12])||0,ctr:parseFloat(r[13])||0})).filter(d=>d.views>0||d.imp>0);}
 
-function loadData(data,src){
+function loadData(data,src,isShared){
   if(!data.length){document.getElementById('pasteErr').textContent='유효한 데이터를 찾지 못했습니다.';return;}
   allData=data;excluded=new Set();catMap={};
   document.getElementById('weekLabel').textContent=getWeekLabel();
   document.getElementById('lastUpdated').textContent=`${src} · ${new Date().toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})} 로드 · 총 ${allData.length}개 영상`;
   document.getElementById('mainContent').style.display='block';
   document.getElementById('emptyState').style.display='none';
-  document.getElementById('btnAnalyze').style.display='flex';
+  document.getElementById('btnShare').style.display='flex';
+  // 공유 링크로 접속한 경우 배너만 표시 (입력창은 유지 — 팀원도 자유롭게 데이터 교체 가능)
+  if(isShared){
+    const banner=document.getElementById('sharedBanner');
+    banner.style.display='flex';
+    document.getElementById('sharedBannerText').textContent=`공유 링크 기준 데이터 로드됨 · ${src} · CSV 업로드 또는 붙여넣기로 데이터를 교체할 수 있어요`;
+  }
   applyFilter();
 }
 function handleFile(file){if(!file)return;const r=new FileReader();r.onload=e=>{try{loadData(rowsToData(parseCSV(e.target.result)),file.name);}catch(err){alert('파싱 오류: '+err.message);}};r.readAsText(file,'UTF-8');}
@@ -507,8 +543,56 @@ function renderInsights(){
   `;
 }
 
+// ── 공유 링크 생성
+function generateShareLink(){
+  if(!allData.length)return;
+  const payload={
+    data: allData.map(d=>({
+      id:d.id, title:d.title,
+      dateStr: d.date instanceof Date && d.date.getTime()!==0 ? d.date.toISOString().slice(0,10) : '',
+      dur:d.dur, avdSec:d.avdSec, vr:d.vr, newV:d.newV, ret:d.ret,
+      views:d.views, wh:d.wh, subs:d.subs, imp:d.imp, ctr:d.ctr
+    })),
+    generatedAt: new Date().toLocaleString('ko-KR',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})
+  };
+  try {
+    const json=JSON.stringify(payload);
+    const b64=btoa(encodeURIComponent(json).replace(/%([0-9A-F]{2})/g,(m,p)=>String.fromCharCode('0x'+p)));
+    const url=`${window.location.origin}${window.location.pathname}?d=${b64}`;
+    document.getElementById('shareUrlInput').value=url;
+    document.getElementById('shareBox').style.display='block';
+    document.getElementById('shareBox').scrollIntoView({behavior:'smooth',block:'nearest'});
+  } catch(e){alert('링크 생성 오류: '+e.message);}
+}
+
+function copyShareLink(){
+  const input=document.getElementById('shareUrlInput');
+  const show=()=>{const el=document.getElementById('shareCopied');el.style.opacity='1';setTimeout(()=>el.style.opacity='0',2500);};
+  navigator.clipboard.writeText(input.value).then(show).catch(()=>{input.select();document.execCommand('copy');show();});
+}
+
+// ── 페이지 로드 시 URL에서 공유 데이터 복원
+(function(){
+  const params=new URLSearchParams(window.location.search);
+  const d=params.get('d');
+  if(!d)return;
+  try{
+    const json=decodeURIComponent(Array.from(atob(d)).map(c=>('%'+('00'+c.charCodeAt(0).toString(16)).slice(-2))).join(''));
+    const payload=JSON.parse(json);
+    if(!payload.data||!payload.data.length)return;
+    const data=payload.data.map(r=>({
+      id:r.id, title:r.title,
+      date: r.dateStr?new Date(r.dateStr):new Date(0),
+      dateDisp: r.dateStr?(()=>{const dd=new Date(r.dateStr);return`${dd.getMonth()+1}/${dd.getDate()}`;})():'—',
+      dur:r.dur||0, avdSec:r.avdSec||0, vr:r.vr||0,
+      newV:r.newV||0, ret:r.ret||0, views:r.views||0,
+      wh:r.wh||0, subs:r.subs||0, imp:r.imp||0, ctr:r.ctr||0
+    }));
+    loadData(data, payload.generatedAt?`${payload.generatedAt} 기준`:'공유 링크', true);
+  } catch(e){console.warn('공유 링크 파싱 오류:',e);}
+})();
+
 document.getElementById('weekLabel').textContent=getWeekLabel();
 </script>
 </body>
 </html>
-
