@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>미야옹철의 냥냥펀치 주간 리뷰</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <style>
+    :root {
+      --color-bg: #ffffff;
+      --color-bg2: #f7f7f8;
+      --color-border: #e4e4e7;
+      --color-border2: #d4d4d8;
+      --color-text: #18181b;
+      --color-text2: #52525b;
+      --color-text3: #a1a1aa;
+      --radius-sm: 6px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --font-mono: 'SF Mono', 'Fira Code', monospace;
+      --red: #e24b4a;
+      --blue: #378ADD;
+      --green: #1D9E75;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --color-bg: #18181b;
+        --color-bg2: #27272a;
+        --color-border: #3f3f46;
+        --color-border2: #52525b;
+        --color-text: #fafafa;
+        --color-text2: #a1a1aa;
+        --color-text3: #71717a;
+      }
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: var(--font); background: var(--color-bg); color: var(--color-text); min-height: 100vh; }
+    .page { max-width: 1200px; margin: 0 auto; padding: 24px 20px 60px; }
+
+    /* 헤더 */
+    .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+    .header-left { display: flex; flex-direction: column; gap: 4px; }
+    .title-row { display: flex; align-items: center; gap: 10px; }
+    .page-title { font-size: 18px; font-weight: 600; color: var(--color-text); }
+    .badge-live { background: var(--red); color: #fff; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 4px; letter-spacing: 0.03em; }
+    .badge-week { background: var(--color-bg2); border: 1px solid var(--color-border); font-size: 11px; color: var(--color-text2); padding: 2px 9px; border-radius: var(--radius-sm); }
+    .header-sub { font-size: 12px; color: var(--color-text3); }
+    .header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    /* 버튼 */
+    .btn { border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 6px 14px; font-size: 12px; background: transparent; color: var(--color-text2); cursor: pointer; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; font-family: var(--font); transition: background 0.1s; }
+    .btn:hover { background: var(--color-bg2); }
+    .btn-primary { background: var(--color-text); color: var(--color-bg); border-color: var(--color-text); }
+    .btn-primary:hover { opacity: 0.85; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* 필터바 */
+    .filter-bar { background: var(--color-bg2); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 10px 16px; margin-bottom: 16px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+    .filter-bar label { font-size: 11px; color: var(--color-text2); white-space: nowrap; display: flex; align-items: center; gap: 4px; }
+    .filter-bar select { font-size: 12px; padding: 4px 10px; border-radius: var(--radius-sm); border: 1px solid var(--color-border); background: var(--color-bg); color: var(--color-text); font-family: var(--font); }
+    .filter-info { font-size: 11px; color: var(--color-text3); margin-left: auto; }
+
+    /* 요약 카드 */
+    .summary-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 20px; }
+    @media (max-width: 700px) { .summary-grid { grid-template-columns: repeat(2,1fr); } }
+    .metric-card { background: var(--color-bg2); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 14px 16px; }
+    .metric-label { font-size: 10px; color: var(--color-text3); margin-bottom: 5px; display: flex; align-items: center; gap: 4px; }
+    .metric-value { font-size: 22px; font-weight: 600; color: var(--color-text); line-height: 1.2; }
+    .metric-bench { font-size: 10px; color: var(--color-text3); margin-top: 5px; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+    .val-up { color: var(--red); font-weight: 600; }
+    .val-dn { color: var(--blue); font-weight: 600; }
+    .bench-label { font-size: 9px; background: var(--color-border); color: var(--color-text3); padding: 1px 5px; border-radius: 3px; margin-right: 2px; }
+
+    /* 입력 박스 */
+    .input-box { border: 1px solid var(--color-border); border-radius: var(--radius-lg); margin-bottom: 20px; overflow: hidden; }
+    .input-tabs { display: flex; background: var(--color-bg2); border-bottom: 1px solid var(--color-border); padding: 0 14px; }
+    .input-tab { padding: 9px 16px; font-size: 12px; cursor: pointer; color: var(--color-text3); border: none; background: none; border-bottom: 2px solid transparent; margin-bottom: -1px; font-family: var(--font); display: flex; align-items: center; gap: 5px; }
+    .input-tab.on { color: var(--color-text); border-bottom-color: var(--color-text); font-weight: 500; }
+    .input-panel { padding: 16px; }
+    .upload-zone { border: 1.5px dashed var(--color-border2); border-radius: var(--radius-md); padding: 28px; text-align: center; color: var(--color-text3); font-size: 13px; cursor: pointer; transition: all 0.15s; }
+    .upload-zone:hover, .upload-zone.drag { border-color: var(--color-text); background: var(--color-bg2); color: var(--color-text2); }
+    .upload-zone .icon { font-size: 28px; display: block; margin-bottom: 8px; }
+    .paste-hint { font-size: 11px; color: var(--color-text3); margin-bottom: 8px; line-height: 1.7; }
+    .paste-hint b { color: var(--color-text2); }
+    .paste-wrap { position: relative; }
+    .paste-area { width: 100%; height: 72px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 8px 10px; font-size: 10px; font-family: var(--font-mono); color: var(--color-text3); background: var(--color-bg); resize: none; line-height: 1.5; overflow: hidden; transition: height 0.2s; }
+    .paste-area:focus { outline: none; border-color: var(--color-text2); height: 120px; overflow: auto; }
+    .paste-area.has-data { background: #f0fdf4; border-color: var(--green); color: var(--color-text3); font-size: 9px; }
+    @media (prefers-color-scheme: dark) { .paste-area.has-data { background: #052e16; } }
+    .paste-ok-badge { display: none; position: absolute; top: 8px; right: 8px; background: var(--green); color: #fff; font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: 500; pointer-events: none; }
+    .paste-area.has-data ~ .paste-ok-badge { display: block; }
+    .paste-actions { display: flex; gap: 8px; margin-top: 8px; align-items: center; flex-wrap: wrap; }
+    .paste-note { font-size: 10px; color: var(--color-text3); margin-left: auto; }
+    .err-msg { font-size: 11px; color: var(--red); margin-top: 6px; }
+    #fileInput { display: none; }
+
+    /* 제외 패널 */
+    .excluded-panel { border: 1px solid var(--color-border); border-radius: var(--radius-lg); margin-bottom: 16px; overflow: hidden; }
+    .excluded-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 16px; background: var(--color-bg2); cursor: pointer; user-select: none; }
+    .excluded-hl { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--color-text2); font-weight: 500; }
+    .ex-badge { background: var(--red); color: #fff; font-size: 10px; padding: 1px 7px; border-radius: 10px; font-weight: 600; }
+    .excluded-body-inner { padding: 8px 16px 12px; }
+    .ex-item { display: flex; align-items: center; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid var(--color-border); gap: 8px; }
+    .ex-item:last-child { border-bottom: none; }
+    .ex-title { font-size: 11px; color: var(--color-text2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+    .ex-date { font-size: 10px; color: var(--color-text3); white-space: nowrap; }
+    .btn-restore { border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 2px 9px; font-size: 10px; background: transparent; color: var(--color-text2); cursor: pointer; font-family: var(--font); }
+    .btn-restore:hover { background: #f0fdf4; color: var(--green); border-color: var(--green); }
+    .btn-restore-all { border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 3px 10px; font-size: 11px; background: transparent; color: var(--color-text2); cursor: pointer; font-family: var(--font); }
+
+    /* 정렬 */
+    .sort-row { display: flex; gap: 6px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+    .sort-lbl { font-size: 10px; color: var(--color-text3); }
+    .sort-btn { border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 3px 10px; font-size: 11px; background: transparent; color: var(--color-text2); cursor: pointer; font-family: var(--font); }
+    .sort-btn.on { background: var(--color-text); color: var(--color-bg); border-color: var(--color-text); }
+
+    /* 테이블 */
+    .table-wrap { overflow-x: auto; margin-bottom: 8px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    thead th { background: var(--color-bg2); color: var(--color-text2); font-weight: 500; font-size: 10px; padding: 8px 8px; text-align: left; border-bottom: 1px solid var(--color-border); white-space: nowrap; position: sticky; top: 0; }
+    tbody tr { border-bottom: 1px solid var(--color-border); }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--color-bg2); }
+    tbody td { padding: 7px 8px; color: var(--color-text); vertical-align: middle; white-space: nowrap; }
+    .td-title { width: 200px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+    .td-r { text-align: right; color: var(--color-text2); font-size: 11px; }
+    .td-date { color: var(--color-text3); font-size: 10px; }
+    .mini-bar-wrap { background: var(--color-border); border-radius: 2px; height: 3px; margin-top: 3px; }
+    .mini-bar { height: 3px; border-radius: 2px; }
+    .tag { display: inline-block; font-size: 9px; padding: 2px 7px; border-radius: 4px; font-weight: 700; white-space: nowrap; }
+    .tag-s { background:#DBEAFE; color:#1D4ED8; }
+    .tag-g { background:#DCFCE7; color:#166534; }
+    .tag-m { background:#FEF9C3; color:#854D0E; }
+    .tag-l { background:#FEE2E2; color:#991B1B; }
+    .btn-ex { background: transparent; border: none; cursor: pointer; color: var(--color-text3); font-size: 13px; padding: 2px 4px; border-radius: 4px; }
+    .btn-ex:hover { background: #fee2e2; color: var(--red); }
+
+    /* 카테고리 */
+    .cat-unset { font-size: 9px; color: var(--color-text3); border: 1px dashed var(--color-border2); border-radius: 4px; padding: 1px 6px; cursor: pointer; white-space: nowrap; display: inline-block; }
+    .cat-unset:hover { border-color: var(--color-text2); color: var(--color-text2); }
+    .cat-display { display: flex; flex-direction: column; gap: 2px; cursor: pointer; }
+    .cat-t1 { font-size: 9px; padding: 1px 5px; border-radius: 3px; font-weight: 600; white-space: nowrap; display: inline-block; }
+    .cat-t2 { font-size: 9px; padding: 1px 5px; border-radius: 3px; white-space: nowrap; display: inline-block; background: var(--color-bg2); color: var(--color-text2); }
+    .c1-저 { background:#FFF3E0; color:#E65100; }
+    .c1-중 { background:#E8F5E9; color:#2E7D32; }
+    .c1-고 { background:#E3F2FD; color:#1565C0; }
+
+    /* 카테고리 드롭다운 */
+    .cat-dd { position: fixed; z-index: 9999; background: var(--color-bg); border: 1px solid var(--color-border2); border-radius: var(--radius-lg); box-shadow: 0 8px 24px rgba(0,0,0,0.15); padding: 12px; width: 270px; }
+    .cat-dd h5 { font-size: 10px; color: var(--color-text3); font-weight: 600; margin-bottom: 7px; letter-spacing:.05em; text-transform:uppercase; }
+    .cat-dd-group { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 12px; }
+    .cat-dd-btn { border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 4px 10px; font-size: 11px; cursor: pointer; background: transparent; color: var(--color-text2); font-family: var(--font); }
+    .cat-dd-btn:hover { background: var(--color-bg2); }
+    .cat-dd-btn.sel-저 { background:#FFF3E0; color:#E65100; border-color:#E65100; font-weight:600; }
+    .cat-dd-btn.sel-중 { background:#E8F5E9; color:#2E7D32; border-color:#2E7D32; font-weight:600; }
+    .cat-dd-btn.sel-고 { background:#E3F2FD; color:#1565C0; border-color:#1565C0; font-weight:600; }
+    .cat-dd-btn.sel-fmt { background:var(--color-bg2); color:var(--color-text); border-color:var(--color-text2); font-weight:600; }
+    .cat-dd-footer { display:flex; justify-content:space-between; align-items:center; margin-top:4px; }
+    .cat-dd-clear { font-size:10px; color:var(--color-text3); background:none; border:none; cursor:pointer; font-family:var(--font); }
+    .cat-dd-clear:hover { color:var(--red); }
+    .cat-dd-done { background:var(--color-text); color:var(--color-bg); border:none; border-radius:var(--radius-sm); padding:5px 14px; font-size:11px; cursor:pointer; font-family:var(--font); }
+
+    /* 차트 */
+    .divider { border: none; border-top: 1px solid var(--color-border); margin: 20px 0; }
+    .sec-label { font-size: 10px; font-weight: 600; color: var(--color-text2); letter-spacing:.07em; text-transform:uppercase; margin-bottom:10px; display: flex; align-items: center; gap: 5px; }
+    .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+    @media (max-width: 640px) { .chart-grid { grid-template-columns: 1fr; } }
+    .chart-card { border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 14px; }
+    .chart-title { font-size: 11px; font-weight: 500; color: var(--color-text2); margin-bottom: 10px; }
+    .chart-wrap { position: relative; height: 200px; }
+
+    /* 인사이트 */
+    .insight-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 20px; }
+    @media (max-width: 800px) { .insight-grid { grid-template-columns: repeat(2,1fr); } }
+    .icard { background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 14px; }
+    .icard h4 { font-size: 10px; font-weight: 600; color: var(--color-text2); margin-bottom: 8px; display:flex; align-items:center; gap:5px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .irow { display:flex; justify-content:space-between; align-items:center; padding:4px 0; border-bottom:1px solid var(--color-border); }
+    .irow:last-child { border-bottom:none; }
+    .ilabel { font-size:11px; color:var(--color-text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:65%; }
+    .ival { font-size:11px; font-weight:600; color:var(--color-text); white-space:nowrap; }
+
+    /* 액션 */
+    .action-row { display:flex; gap:8px; flex-wrap:wrap; margin-top:16px; padding-top: 16px; border-top: 1px solid var(--color-border); }
+
+    /* 푸터 */
+    .footer { text-align: center; margin-top: 40px; font-size: 11px; color: var(--color-text3); }
+
+    /* 빈 상태 */
+    .empty-state { text-align: center; padding: 40px 20px; color: var(--color-text3); }
+    .empty-state .empty-icon { font-size: 40px; display: block; margin-bottom: 12px; opacity: 0.5; }
+    .empty-state p { font-size: 13px; }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- 헤더 -->
+  <div class="header">
+    <div class="header-left">
+      <div class="title-row">
+        <span class="page-title">냥냥펀치 주간 리뷰</span>
+        <span class="badge-live">● LIVE</span>
+        <span class="badge-week" id="weekLabel">—</span>
+      </div>
+      <div class="header-sub" id="lastUpdated">CSV 업로드 또는 데이터 붙여넣기로 시작하세요</div>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-primary" id="btnAnalyze" style="display:none;" onclick="alert('Claude.ai에서 AI 분석 버튼을 사용해 주세요.')">
+        <i class="ti ti-chart-bar"></i> AI 분석
+      </button>
+    </div>
+  </div>
+
+  <!-- 필터 -->
+  <div class="filter-bar">
+    <label><i class="ti ti-calendar"></i> 기간
+      <select id="rangeSel" onchange="applyFilter()">
+        <option value="7">최근 7일</option>
+        <option value="14" selected>최근 14일</option>
+        <option value="30">최근 30일</option>
+        <option value="90">최근 90일</option>
+        <option value="150">최근 150일</option>
+        <option value="0">전체</option>
+      </select>
+    </label>
+    <label><i class="ti ti-filter"></i> 유형
+      <select id="typeSel" onchange="applyFilter()">
+        <option value="all">전체</option>
+        <option value="short">쇼츠 (60초 미만)</option>
+        <option value="mid">미드폼 (60~180초)</option>
+        <option value="long">롱폼 (180초 이상)</option>
+      </select>
+    </label>
+    <span class="filter-info" id="filterInfo"></span>
+  </div>
+
+  <!-- 요약 카드 -->
+  <div class="summary-grid">
+    <div class="metric-card"><div class="metric-label"><i class="ti ti-eye"></i> 평균 조회수</div><div class="metric-value" id="s-views">—</div><div class="metric-bench" id="b-views"></div></div>
+    <div class="metric-card"><div class="metric-label"><i class="ti ti-speakerphone"></i> 평균 노출수</div><div class="metric-value" id="s-imp">—</div><div class="metric-bench" id="b-imp"></div></div>
+    <div class="metric-card"><div class="metric-label"><i class="ti ti-click"></i> 평균 노출클릭률</div><div class="metric-value" id="s-ctr">—</div><div class="metric-bench" id="b-ctr"></div></div>
+    <div class="metric-card"><div class="metric-label"><i class="ti ti-percentage"></i> 평균 조회율</div><div class="metric-value" id="s-vr">—</div><div class="metric-bench" id="b-vr"></div></div>
+  </div>
+
+  <!-- 입력 -->
+  <div class="input-box">
+    <div class="input-tabs">
+      <button class="input-tab on" id="tab-csv" onclick="switchTab('csv')"><i class="ti ti-upload"></i> CSV 파일</button>
+      <button class="input-tab" id="tab-paste" onclick="switchTab('paste')"><i class="ti ti-clipboard"></i> 붙여넣기</button>
+    </div>
+    <div id="panel-csv" class="input-panel">
+      <div class="upload-zone"
+        onclick="document.getElementById('fileInput').click()"
+        ondragover="event.preventDefault();this.classList.add('drag')"
+        ondragleave="this.classList.remove('drag')"
+        ondrop="event.preventDefault();this.classList.remove('drag');handleFile(event.dataTransfer.files[0])">
+        <i class="ti ti-file-spreadsheet icon"></i>
+        YouTube Studio <strong>표 데이터.csv</strong> 파일을 드래그하거나 클릭해서 업로드하세요
+      </div>
+      <input type="file" id="fileInput" accept=".csv" onchange="handleFile(this.files[0])">
+    </div>
+    <div id="panel-paste" class="input-panel" style="display:none;">
+      <div class="paste-hint">구글 시트 또는 엑셀에서 <b>헤더 포함 전체 영역 선택 → Ctrl+C</b> 후 아래에 Ctrl+V 붙여넣기<br><span style="font-size:10px;">컬럼 순서: 콘텐츠ID · 제목 · 게시시간 · 길이(초) · AVD · 조회율% · 신규 · 재방문 · 조회수 · 시청시간h · 구독자 · 수익 · 노출수 · CTR%</span></div>
+      <div class="paste-wrap">
+        <textarea class="paste-area" id="pasteArea" placeholder="여기에 Ctrl+V로 붙여넣기..."></textarea>
+        <span class="paste-ok-badge">✓ 로드됨</span>
+      </div>
+      <div class="paste-actions">
+        <button class="btn btn-primary" onclick="parsePaste()"><i class="ti ti-check"></i> 불러오기</button>
+        <button class="btn" onclick="clearPaste()">초기화</button>
+        <span class="paste-note">탭·쉼표 구분 자동 감지</span>
+      </div>
+      <div class="err-msg" id="pasteErr"></div>
+    </div>
+  </div>
+
+  <!-- 메인 콘텐츠 -->
+  <div id="mainContent" style="display:none;">
+
+    <!-- 제외 패널 -->
+    <div class="excluded-panel" id="excludedPanel" style="display:none;">
+      <div class="excluded-header" onclick="toggleExcluded()">
+        <div class="excluded-hl"><i class="ti ti-eye-off"></i> 집계 제외된 영상 <span class="ex-badge" id="exCount">0</span></div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button class="btn-restore-all" onclick="event.stopPropagation();restoreAll()">전체 복원</button>
+          <i class="ti ti-chevron-down" id="exChevron" style="font-size:13px;color:var(--color-text3);transition:transform 0.2s;"></i>
+        </div>
+      </div>
+      <div id="exBody" style="display:none;"><div class="excluded-body-inner" id="exList"></div></div>
+    </div>
+
+    <!-- 정렬 -->
+    <div class="sort-row">
+      <span class="sort-lbl">정렬</span>
+      <button class="sort-btn on" data-k="date" onclick="setSort(this)">업로드일</button>
+      <button class="sort-btn" data-k="views" onclick="setSort(this)">조회수</button>
+      <button class="sort-btn" data-k="vr" onclick="setSort(this)">조회율</button>
+      <button class="sort-btn" data-k="imp" onclick="setSort(this)">노출수</button>
+      <button class="sort-btn" data-k="ctr" onclick="setSort(this)">CTR</button>
+      <button class="sort-btn" data-k="avdSec" onclick="setSort(this)">AVD</button>
+      <button class="sort-btn" data-k="subs" onclick="setSort(this)">구독자</button>
+    </div>
+
+    <!-- 테이블 -->
+    <div class="table-wrap">
+      <table id="mainTable"><thead id="tableHead"></thead><tbody id="tbody"></tbody></table>
+    </div>
+
+    <!-- 차트 -->
+    <div class="divider"></div>
+    <div class="chart-grid">
+      <div class="chart-card">
+        <div class="chart-title"><i class="ti ti-chart-scatter"></i> 노출수 대비 CTR 상관</div>
+        <div class="chart-wrap"><canvas id="cImpCtr"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title"><i class="ti ti-chart-scatter"></i> CTR vs 평균 조회율 상관</div>
+        <div class="chart-wrap"><canvas id="cS"></canvas></div>
+      </div>
+    </div>
+
+    <!-- 인사이트 -->
+    <div class="divider"></div>
+    <div class="sec-label"><i class="ti ti-star"></i> 영상별 인사이트</div>
+    <div class="insight-grid" id="insightGrid"></div>
+
+    <!-- 액션 -->
+    <div class="action-row">
+      <span style="font-size:11px;color:var(--color-text3);display:flex;align-items:center;gap:4px;"><i class="ti ti-info-circle"></i> AI 분석은 Claude.ai에서 이용 가능합니다</span>
+    </div>
+
+  </div>
+
+  <!-- 빈 상태 -->
+  <div id="emptyState" class="empty-state">
+    <i class="ti ti-table empty-icon"></i>
+    <p>위에서 CSV 파일을 업로드하거나 데이터를 붙여넣으면<br>대시보드가 채워집니다</p>
+  </div>
+
+  <div class="footer">미야옹철의 냥냥펀치 주간 리뷰 대시보드 · 매주 월요일 오전 업데이트</div>
+</div>
+
+<!-- 카테고리 드롭다운 -->
+<div class="cat-dd" id="catDd" style="display:none;">
+  <div style="margin-bottom:10px;"><span style="font-size:11px;font-weight:600;color:var(--color-text);">카테고리 태깅</span></div>
+  <h5>1단 — 관여도</h5>
+  <div class="cat-dd-group">
+    <button class="cat-dd-btn" data-c="1" data-v="저관여" onclick="selCat(this)">저관여 확장형</button>
+    <button class="cat-dd-btn" data-c="1" data-v="중관여" onclick="selCat(this)">중관여 공감형</button>
+    <button class="cat-dd-btn" data-c="1" data-v="고관여" onclick="selCat(this)">고관여 해결형</button>
+  </div>
+  <h5>2단 — 포맷</h5>
+  <div class="cat-dd-group">
+    <button class="cat-dd-btn" data-c="2" data-v="정보형" onclick="selCat(this)">정보형</button>
+    <button class="cat-dd-btn" data-c="2" data-v="토크형" onclick="selCat(this)">토크형(초대석)</button>
+    <button class="cat-dd-btn" data-c="2" data-v="브이로그" onclick="selCat(this)">브이로그형</button>
+    <button class="cat-dd-btn" data-c="2" data-v="예능형" onclick="selCat(this)">예능형</button>
+  </div>
+  <div class="cat-dd-footer">
+    <button class="cat-dd-clear" onclick="clearCat()">초기화</button>
+    <button class="cat-dd-done" onclick="closeCatDd()">완료</button>
+  </div>
+</div>
+
+<script>
+const BENCH={all:{views:43430,imp:761166,ctr:4.43,vr:38.26},long:{views:43430,imp:761166,ctr:4.43,vr:38.26},short:{views:321365,imp:873467,ctr:7.54,vr:83.97},mid:{views:207334,imp:441209,ctr:7.82,vr:52.87}};
+const BENCH_LABEL={all:'롱폼 기준',long:'롱폼 기준',short:'쇼츠 기준',mid:'미드폼 기준'};
+let allData=[],filtered=[],excluded=new Set(),catMap={};
+let sortKey='date',sortDir=-1,cImpInst=null,cSInst=null,exOpen=false,curType='all',activeCatId=null;
+
+const fmt=n=>{if(n==null||isNaN(n))return'—';if(n>=10000)return(n/10000).toFixed(1)+'만';if(n>=1000)return(n/1000).toFixed(1)+'천';return Math.round(n).toLocaleString();};
+const fmtSec=s=>{if(!s||isNaN(s)||s<=0)return'—';if(s<60)return Math.round(s)+'초';const m=Math.floor(s/60),r=Math.round(s%60);return r>0?`${m}:${String(r).padStart(2,'0')}`:`${m}분`;};
+const parseAVD=val=>{if(!val)return 0;const s=String(val).trim();if(!s||s==='0:00:00')return 0;const p=s.split(':').map(Number);if(p.length===3)return p[0]*3600+p[1]*60+p[2];if(p.length===2)return p[0]*60+p[1];return parseFloat(s)||0;};
+const parseDate=val=>{if(!val)return new Date(0);const d=new Date(String(val).trim());return isNaN(d)?new Date(0):d;};
+const fmtDate=d=>{if(!d||d.getTime()===0)return'—';return`${d.getMonth()+1}/${d.getDate()}`;};
+const getWeekLabel=()=>{const now=new Date();const mon=new Date(now);mon.setDate(now.getDate()-((now.getDay()+6)%7));const sun=new Date(mon);sun.setDate(mon.getDate()+6);return`${mon.getMonth()+1}/${mon.getDate()}–${sun.getMonth()+1}/${sun.getDate()}주`;};
+const getType=dur=>dur<60?'short':dur<180?'mid':'long';
+const scoreVideo=v=>{const b=BENCH[getType(v.dur)];let s=0;if(v.views>b.views)s++;if(v.imp>b.imp)s++;if(v.ctr>b.ctr)s++;if(v.vr>b.vr)s++;if(s===4)return'<span class="tag tag-s">우수</span>';if(s>=3)return'<span class="tag tag-g">양호</span>';if(s>=2)return'<span class="tag tag-m">보통</span>';return'<span class="tag tag-l">주의</span>';};
+const shortT=(t,n=10)=>t.replace(/\[.*?\]/g,'').replace(/#\S+/g,'').replace(/[⭐🐱🎤🌾]/g,'').trim().slice(0,n)+'…';
+
+function switchTab(t){
+  document.getElementById('panel-csv').style.display=t==='csv'?'block':'none';
+  document.getElementById('panel-paste').style.display=t==='paste'?'block':'none';
+  document.getElementById('tab-csv').classList.toggle('on',t==='csv');
+  document.getElementById('tab-paste').classList.toggle('on',t==='paste');
+}
+
+function parseCSV(text){const rows=[];let cur=[],field='',inQ=false;for(let i=0;i<text.length;i++){const c=text[i];if(inQ){if(c==='"'&&text[i+1]==='"'){field+='"';i++;}else if(c==='"'){inQ=false;}else field+=c;}else{if(c==='"')inQ=true;else if(c===','){cur.push(field);field='';}else if(c==='\n'){cur.push(field);field='';if(cur.some(f=>f.trim()))rows.push(cur);cur=[];}else if(c!=='\r')field+=c;}}if(field||cur.length){cur.push(field);if(cur.some(f=>f.trim()))rows.push(cur);}return rows;}
+function parseTSV(text){return text.split('\n').map(l=>l.split('\t').map(c=>c.trim())).filter(r=>r.some(c=>c));}
+function rowsToData(rows){return rows.slice(2).filter(r=>r[0]&&!['합계','콘텐츠','상위 500개 결과 표시'].includes(r[0].trim())).map(r=>({id:String(r[0]||'').trim(),title:String(r[1]||'').trim().split('\n')[0],date:parseDate(r[2]),dateDisp:fmtDate(parseDate(r[2])),dur:parseInt(r[3])||0,avdSec:parseAVD(r[4]),vr:parseFloat(r[5])||0,newV:parseInt(r[6])||0,ret:parseInt(r[7])||0,views:parseInt(r[8])||0,wh:parseFloat(r[9])||0,subs:parseInt(r[10])||0,imp:parseInt(r[12])||0,ctr:parseFloat(r[13])||0})).filter(d=>d.views>0||d.imp>0);}
+
+function loadData(data,src){
+  if(!data.length){document.getElementById('pasteErr').textContent='유효한 데이터를 찾지 못했습니다.';return;}
+  allData=data;excluded=new Set();catMap={};
+  document.getElementById('weekLabel').textContent=getWeekLabel();
+  document.getElementById('lastUpdated').textContent=`${src} · ${new Date().toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})} 로드 · 총 ${allData.length}개 영상`;
+  document.getElementById('mainContent').style.display='block';
+  document.getElementById('emptyState').style.display='none';
+  document.getElementById('btnAnalyze').style.display='flex';
+  applyFilter();
+}
+function handleFile(file){if(!file)return;const r=new FileReader();r.onload=e=>{try{loadData(rowsToData(parseCSV(e.target.result)),file.name);}catch(err){alert('파싱 오류: '+err.message);}};r.readAsText(file,'UTF-8');}
+function parsePaste(){const raw=document.getElementById('pasteArea').value.trim();if(!raw){document.getElementById('pasteErr').textContent='붙여넣은 데이터가 없습니다.';return;}document.getElementById('pasteErr').textContent='';const rows=raw.includes('\t')?parseTSV(raw):parseCSV(raw);try{const data=rowsToData(rows);loadData(data,'붙여넣기 입력');const ta=document.getElementById('pasteArea');ta.classList.add('has-data');ta.value=`✓ ${data.length}개 영상 로드됨`;ta.readOnly=true;}catch(err){document.getElementById('pasteErr').textContent='파싱 오류: '+err.message;}}
+function clearPaste(){const ta=document.getElementById('pasteArea');ta.classList.remove('has-data');ta.value='';ta.readOnly=false;document.getElementById('pasteErr').textContent='';}
+
+function exVideo(id){excluded.add(id);applyFilter();renderExPanel();}
+function restoreVideo(id){excluded.delete(id);applyFilter();renderExPanel();}
+function restoreAll(){excluded.clear();applyFilter();renderExPanel();}
+function toggleExcluded(){exOpen=!exOpen;document.getElementById('exBody').style.display=exOpen?'block':'none';document.getElementById('exChevron').style.transform=exOpen?'rotate(180deg)':'';}
+function renderExPanel(){const ex=allData.filter(d=>excluded.has(d.id));const p=document.getElementById('excludedPanel');if(!ex.length){p.style.display='none';return;}p.style.display='block';document.getElementById('exCount').textContent=ex.length;document.getElementById('exList').innerHTML=ex.map(v=>`<div class="ex-item"><span class="ex-title" title="${v.title}">${v.title}</span><span class="ex-date">${v.dateDisp}</span><button class="btn-restore" onclick="restoreVideo('${v.id}')">복원</button></div>`).join('');}
+
+function openCatDd(id,el){activeCatId=id;const dd=document.getElementById('catDd');const cat=catMap[id]||{};dd.querySelectorAll('.cat-dd-btn').forEach(b=>{b.classList.remove('sel-저','sel-중','sel-고','sel-fmt');if(b.dataset.c==='1'&&cat.c1===b.dataset.v)b.classList.add('sel-'+b.dataset.v.slice(0,1));if(b.dataset.c==='2'&&cat.c2===b.dataset.v)b.classList.add('sel-fmt');});const rect=el.getBoundingClientRect();dd.style.display='block';let t=rect.bottom+window.scrollY+4,l=rect.left+window.scrollX;if(l+270>window.innerWidth)l=window.innerWidth-278;dd.style.top=t+'px';dd.style.left=l+'px';setTimeout(()=>document.addEventListener('click',outsideCat),10);}
+const outsideCat=e=>{if(!document.getElementById('catDd').contains(e.target))closeCatDd();};
+function closeCatDd(){document.getElementById('catDd').style.display='none';document.removeEventListener('click',outsideCat);renderTable();}
+function selCat(btn){if(!activeCatId)return;if(!catMap[activeCatId])catMap[activeCatId]={};const c=btn.dataset.c,v=btn.dataset.v;if(c==='1')catMap[activeCatId].c1=catMap[activeCatId].c1===v?undefined:v;else catMap[activeCatId].c2=catMap[activeCatId].c2===v?undefined:v;document.getElementById('catDd').querySelectorAll('.cat-dd-btn').forEach(b=>{b.classList.remove('sel-저','sel-중','sel-고','sel-fmt');const cat=catMap[activeCatId]||{};if(b.dataset.c==='1'&&cat.c1===b.dataset.v)b.classList.add('sel-'+b.dataset.v.slice(0,1));if(b.dataset.c==='2'&&cat.c2===b.dataset.v)b.classList.add('sel-fmt');});}
+function clearCat(){if(activeCatId)catMap[activeCatId]={};document.getElementById('catDd').querySelectorAll('.cat-dd-btn').forEach(b=>b.classList.remove('sel-저','sel-중','sel-고','sel-fmt'));}
+function catHTML(id){const cat=catMap[id]||{};const cm={'저관여':'c1-저','중관여':'c1-중','고관여':'c1-고'};if(!cat.c1&&!cat.c2)return`<span class="cat-unset" onclick="event.stopPropagation();openCatDd('${id}',this)">+ 태깅</span>`;let h='<div class="cat-display" onclick="event.stopPropagation();openCatDd(\''+id+'\',this)">';if(cat.c1)h+=`<span class="cat-t1 ${cm[cat.c1]||''}">${cat.c1}</span>`;if(cat.c2)h+=`<span class="cat-t2">${cat.c2}</span>`;return h+'</div>';}
+
+function applyFilter(){
+  if(!allData.length)return;
+  const days=parseInt(document.getElementById('rangeSel').value);
+  curType=document.getElementById('typeSel').value;
+  const cutoff=days>0?new Date(Date.now()-days*86400*1000):new Date(0);
+  filtered=allData.filter(d=>{
+    if(excluded.has(d.id))return false;
+    const inRange=d.date>=cutoff;
+    let inType=curType==='all'||({short:d.dur<60,mid:d.dur>=60&&d.dur<180,long:d.dur>=180}[curType]??true);
+    return inRange&&inType;
+  });
+  document.getElementById('filterInfo').textContent=filtered.length+'개 영상 집계 중'+(excluded.size>0?` (${excluded.size}개 제외됨)`:'');
+  renderSummary();renderTableHead();renderTable();renderCharts();renderInsights();
+}
+
+function setSort(el){const k=el.dataset.k;if(sortKey===k)sortDir*=-1;else{sortKey=k;sortDir=-1;}document.querySelectorAll('.sort-btn').forEach(b=>b.classList.remove('on'));el.classList.add('on');renderTable();}
+const getSorted=()=>[...filtered].sort((a,b)=>sortKey==='date'?(a.date-b.date)*sortDir:((a[sortKey]||0)-(b[sortKey]||0))*sortDir);
+
+function renderSummary(){
+  if(!filtered.length){['s-views','s-imp','s-ctr','s-vr'].forEach(id=>document.getElementById(id).textContent='—');['b-views','b-imp','b-ctr','b-vr'].forEach(id=>document.getElementById(id).innerHTML='');return;}
+  const av=filtered.reduce((s,v)=>s+v.views,0)/filtered.length;
+  const ai=filtered.reduce((s,v)=>s+v.imp,0)/filtered.length;
+  const ac=filtered.reduce((s,v)=>s+v.ctr,0)/filtered.length;
+  const ar=filtered.reduce((s,v)=>s+v.vr,0)/filtered.length;
+  const bk=curType==='all'?'all':curType,b=BENCH[bk],bl=BENCH_LABEL[bk];
+  document.getElementById('s-views').textContent=fmt(Math.round(av));
+  document.getElementById('s-imp').textContent=fmt(Math.round(ai));
+  document.getElementById('s-ctr').textContent=ac.toFixed(1)+'%';
+  document.getElementById('s-vr').textContent=ar.toFixed(1)+'%';
+  const bH=(cur,ref,rs)=>{const d=cur-ref,p=ref>0?((d/ref)*100).toFixed(1):0,up=d>=0;return`<span class="bench-label">${bl}</span>${rs} <span class="${up?'val-up':'val-dn'}">${up?'↑':'↓'}${Math.abs(p)}%</span>`;};
+  document.getElementById('b-views').innerHTML=bH(av,b.views,fmt(Math.round(b.views)));
+  document.getElementById('b-imp').innerHTML=bH(ai,b.imp,fmt(Math.round(b.imp)));
+  document.getElementById('b-ctr').innerHTML=bH(ac,b.ctr,b.ctr.toFixed(2)+'%');
+  document.getElementById('b-vr').innerHTML=bH(ar,b.vr,b.vr.toFixed(2)+'%');
+}
+
+function renderTableHead(){
+  const isLong=curType==='long';
+  document.getElementById('tableHead').innerHTML=`<tr>
+    <th style="width:26px;">✕</th><th style="width:52px;">업로드일</th><th style="width:48px;">평가</th>
+    <th style="width:200px;">제목</th>${isLong?'<th style="width:90px;">카테고리</th>':''}
+    <th style="width:38px;">길이</th><th style="width:64px;">조회수</th><th style="width:50px;">조회율%</th>
+    <th style="width:60px;">노출수</th><th style="width:48px;">CTR%</th><th style="width:52px;">AVD</th>
+    <th style="width:46px;">신규</th><th style="width:46px;">재방문</th><th style="width:44px;">구독자</th>
+  </tr>`;
+}
+
+function renderTable(){
+  const sv=getSorted(),isLong=curType==='long';
+  const mxV=Math.max(...sv.map(v=>v.views),1),mxC=Math.max(...sv.map(v=>v.ctr),1),mxI=Math.max(...sv.map(v=>v.imp),1);
+  const na='<span style="color:var(--color-text3);font-size:10px;">집계중</span>';
+  const durStr=v=>v.dur<=0?'—':v.dur<60?v.dur+'초':v.dur<3600?`${Math.floor(v.dur/60)}:${String(v.dur%60).padStart(2,'0')}`:`${Math.floor(v.dur/3600)}:${String(Math.floor((v.dur%3600)/60)).padStart(2,'0')}`;
+  document.getElementById('tbody').innerHTML=sv.map(v=>`<tr>
+    <td><button class="btn-ex" onclick="exVideo('${v.id}')">✕</button></td>
+    <td class="td-date">${v.dateDisp}</td>
+    <td style="text-align:center;">${scoreVideo(v)}</td>
+    <td class="td-title" title="${v.title}">${v.title}</td>
+    ${isLong?`<td>${catHTML(v.id)}</td>`:''}
+    <td class="td-r" style="font-size:10px;">${durStr(v)}</td>
+    <td class="td-r">${fmt(v.views)}<div class="mini-bar-wrap"><div class="mini-bar" style="width:${Math.round(v.views/mxV*100)}%;background:#378ADD;"></div></div></td>
+    <td class="td-r">${v.vr>0?v.vr.toFixed(1)+'%':na}</td>
+    <td class="td-r">${v.imp>0?fmt(v.imp):na}<div class="mini-bar-wrap"><div class="mini-bar" style="width:${Math.round(v.imp/mxI*100)}%;background:#BA7517;"></div></div></td>
+    <td class="td-r">${v.ctr>0?v.ctr.toFixed(1)+'%':na}<div class="mini-bar-wrap"><div class="mini-bar" style="width:${Math.round(v.ctr/mxC*100)}%;background:#1D9E75;"></div></div></td>
+    <td class="td-r">${fmtSec(Math.round(v.avdSec))}</td>
+    <td class="td-r">${v.newV>0?fmt(v.newV):na}</td>
+    <td class="td-r">${v.ret>0?fmt(v.ret):na}</td>
+    <td class="td-r"><span style="color:${v.subs>=50?'var(--red)':v.subs>0?'var(--color-text2)':'var(--blue)'}">${v.subs>=0?'+':''}${v.subs}</span></td>
+  </tr>`).join('')||`<tr><td colspan="${isLong?14:13}" style="text-align:center;padding:24px;color:var(--color-text3);">해당 기간 데이터 없음</td></tr>`;
+}
+
+function renderCharts(){
+  if(cImpInst)cImpInst.destroy();if(cSInst)cSInst.destroy();
+  const colors=['#378ADD','#1D9E75','#7F77DD','#D85A30','#D4537E','#BA7517','#0F6E56','#993C1D'];
+  const opts=(xt,yt,tip)=>({responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:tip}}},scales:{x:{title:{display:true,text:xt,font:{size:9}},ticks:{font:{size:9},callback:v=>fmt(v)},grid:{color:'rgba(128,128,128,0.08)'}},y:{title:{display:true,text:yt,font:{size:9}},ticks:{font:{size:9}},grid:{color:'rgba(128,128,128,0.08)'}}}});
+  cImpInst=new Chart(document.getElementById('cImpCtr'),{type:'scatter',data:{datasets:filtered.map((v,i)=>({data:[{x:v.imp,y:v.ctr}],backgroundColor:colors[i%colors.length]+'BB',pointRadius:5}))},options:opts('노출수','CTR (%)',ctx=>`${filtered[ctx.datasetIndex]?.title?.slice(0,18)} | 노출:${fmt(ctx.parsed.x)} CTR:${ctx.parsed.y.toFixed(1)}%`)});
+  cSInst=new Chart(document.getElementById('cS'),{type:'scatter',data:{datasets:filtered.map((v,i)=>({data:[{x:v.ctr,y:v.vr}],backgroundColor:colors[i%colors.length]+'BB',pointRadius:5}))},options:{...opts('CTR (%)','평균 조회율 (%)',ctx=>`${filtered[ctx.datasetIndex]?.title?.slice(0,18)} | CTR:${ctx.parsed.x.toFixed(1)}% 조회율:${ctx.parsed.y.toFixed(1)}%`),scales:{x:{title:{display:true,text:'CTR (%)',font:{size:9}},ticks:{font:{size:9}},grid:{color:'rgba(128,128,128,0.08)'}},y:{title:{display:true,text:'평균 조회율 (%)',font:{size:9}},ticks:{font:{size:9}},grid:{color:'rgba(128,128,128,0.08)'}}}}});
+}
+
+function renderInsights(){
+  const top=(k,n=3)=>[...filtered].sort((a,b)=>(b[k]||0)-(a[k]||0)).slice(0,n);
+  const row=(v,val)=>`<div class="irow"><span class="ilabel" title="${v.title}">${v.title.slice(0,18)}…</span><span class="ival">${val}</span></div>`;
+  document.getElementById('insightGrid').innerHTML=`
+    <div class="icard"><h4><i class="ti ti-flame"></i>조회수 TOP</h4>${top('views').map(v=>row(v,fmt(v.views))).join('')}</div>
+    <div class="icard"><h4><i class="ti ti-click"></i>CTR TOP</h4>${top('ctr').map(v=>row(v,v.ctr.toFixed(1)+'%')).join('')}</div>
+    <div class="icard"><h4><i class="ti ti-eye"></i>평균조회율 TOP</h4>${top('vr').map(v=>row(v,v.vr.toFixed(1)+'%')).join('')}</div>
+    <div class="icard"><h4><i class="ti ti-user-plus"></i>구독자 TOP</h4>${top('subs').map(v=>row(v,'+'+v.subs)).join('')}</div>
+  `;
+}
+
+document.getElementById('weekLabel').textContent=getWeekLabel();
+</script>
+</body>
+</html>
