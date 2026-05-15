@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>미야옹철의 냥냥펀치 주간 리뷰</title>
+  <title>미냥펀 리뷰 대시보드</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
   <style>
@@ -67,12 +67,14 @@
     .filter-info { font-size: 11px; color: var(--color-text3); margin-left: auto; }
 
     /* 요약 카드 */
-    .summary-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 20px; }
-    @media (max-width: 700px) { .summary-grid { grid-template-columns: repeat(2,1fr); } }
+    .summary-grid { display: grid; grid-template-columns: repeat(5,1fr); gap: 12px; margin-bottom: 20px; }
+    @media (max-width: 900px) { .summary-grid { grid-template-columns: repeat(3,1fr); } }
+    @media (max-width: 600px) { .summary-grid { grid-template-columns: repeat(2,1fr); } }
     .metric-card { background: var(--color-bg2); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 14px 16px; }
     .metric-label { font-size: 10px; color: var(--color-text3); margin-bottom: 5px; display: flex; align-items: center; gap: 4px; }
-    .metric-value { font-size: 22px; font-weight: 600; color: var(--color-text); line-height: 1.2; }
-    .metric-bench { font-size: 10px; color: var(--color-text3); margin-top: 5px; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+    .metric-value { font-size: 18px; font-weight: 600; color: var(--color-text); line-height: 1.2; }
+    .metric-bench { font-size: 10px; color: var(--color-text3); margin-top: 5px; display: flex; flex-direction: column; gap: 2px; flex-wrap: wrap; }
+    .bench-row { display: flex; align-items: center; gap: 3px; flex-wrap: wrap; }
     .val-up { color: var(--red); font-weight: 600; }
     .val-dn { color: var(--blue); font-weight: 600; }
     .bench-label { font-size: 9px; background: var(--color-border); color: var(--color-text3); padding: 1px 5px; border-radius: 3px; margin-right: 2px; }
@@ -204,17 +206,13 @@
   <div class="header">
     <div class="header-left">
       <div class="title-row">
-        <span class="page-title">미야옹철의 냥냥펀치 주간 리뷰</span>
+        <span class="page-title">🌽미냥펀 리뷰 대시보드</span>
         <span class="badge-live">● LIVE</span>
         <span class="badge-week" id="weekLabel">—</span>
       </div>
       <div class="header-sub" id="lastUpdated">CSV 업로드 또는 데이터 붙여넣기로 시작하세요</div>
     </div>
-    <div class="header-actions">
-      <button class="btn" id="btnRefresh" style="display:none;" onclick="refreshDashboard()">
-        <i class="ti ti-refresh"></i> 새로고침
-      </button>
-    </div>
+    <div class="header-actions"></div>
   </div>
 
   <!-- 공유 뷰 배너 (공유 링크로 접속 시) -->
@@ -226,15 +224,19 @@
   <!-- 필터 -->
   <div class="filter-bar">
     <label><i class="ti ti-calendar"></i> 기간
-      <select id="rangeSel" onchange="applyFilter()">
+      <select id="rangeSel" onchange="handleRangeChange()">
         <option value="7">최근 7일</option>
         <option value="14" selected>최근 14일</option>
         <option value="30">최근 30일</option>
-        <option value="90">최근 90일</option>
-        <option value="150">최근 150일</option>
         <option value="0">전체</option>
+        <option value="custom">기간 설정 ▾</option>
       </select>
     </label>
+    <span id="customRangeWrap" style="display:none;align-items:center;gap:6px;font-size:11px;color:var(--color-text2);">
+      <input type="date" id="dateFrom" onchange="applyFilter()" style="font-size:11px;padding:3px 6px;border:1px solid var(--color-border);border-radius:var(--radius-sm);background:var(--color-bg);color:var(--color-text);">
+      <span>~</span>
+      <input type="date" id="dateTo" onchange="applyFilter()" style="font-size:11px;padding:3px 6px;border:1px solid var(--color-border);border-radius:var(--radius-sm);background:var(--color-bg);color:var(--color-text);">
+    </span>
     <label><i class="ti ti-filter"></i> 유형
       <select id="typeSel" onchange="applyFilter()">
         <option value="all">전체</option>
@@ -252,6 +254,7 @@
     <div class="metric-card"><div class="metric-label"><i class="ti ti-speakerphone"></i> 평균 노출수</div><div class="metric-value" id="s-imp">—</div><div class="metric-bench" id="b-imp"></div></div>
     <div class="metric-card"><div class="metric-label"><i class="ti ti-click"></i> 평균 노출클릭률</div><div class="metric-value" id="s-ctr">—</div><div class="metric-bench" id="b-ctr"></div></div>
     <div class="metric-card"><div class="metric-label"><i class="ti ti-percentage"></i> 평균 조회율</div><div class="metric-value" id="s-vr">—</div><div class="metric-bench" id="b-vr"></div></div>
+    <div class="metric-card"><div class="metric-label"><i class="ti ti-user-plus"></i> 구독자 순증</div><div class="metric-value" id="s-subs">—</div><div class="metric-bench" id="b-subs"></div></div>
   </div>
 
   <!-- 입력 -->
@@ -326,7 +329,7 @@
         <div class="chart-wrap"><canvas id="cImpCtr"></canvas></div>
       </div>
       <div class="chart-card">
-        <div class="chart-title"><i class="ti ti-chart-scatter"></i> CTR vs 평균 조회율 상관</div>
+        <div class="chart-title"><i class="ti ti-chart-scatter"></i> 평균 조회율 vs CTR 상관</div>
         <div class="chart-wrap"><canvas id="cS"></canvas></div>
       </div>
     </div>
@@ -349,7 +352,7 @@
     <p>위에서 CSV 파일을 업로드하거나 데이터를 붙여넣으면<br>대시보드가 채워집니다</p>
   </div>
 
-  <div class="footer">미야옹철의 냥냥펀치 주간 리뷰 대시보드 · 매주 월요일 오전 업데이트</div>
+  <div class="footer">미야옹철의 냥냥펀치 리뷰 대시보드</div>
 </div>
 
 <!-- 카테고리 드롭다운 -->
@@ -408,7 +411,6 @@ function loadData(data,src,isShared){
   document.getElementById('lastUpdated').textContent=`${src} · ${new Date().toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})} 로드 · 총 ${allData.length}개 영상`;
   document.getElementById('mainContent').style.display='block';
   document.getElementById('emptyState').style.display='none';
-  document.getElementById('btnRefresh').style.display='flex';
   // 공유 링크로 접속한 경우 배너만 표시 (입력창은 유지 — 팀원도 자유롭게 데이터 교체 가능)
   if(isShared){
     const banner=document.getElementById('sharedBanner');
@@ -434,15 +436,42 @@ function selCat(btn){if(!activeCatId)return;if(!catMap[activeCatId])catMap[activ
 function clearCat(){if(activeCatId)catMap[activeCatId]={};document.getElementById('catDd').querySelectorAll('.cat-dd-btn').forEach(b=>b.classList.remove('sel-저','sel-중','sel-고','sel-fmt'));}
 function catHTML(id){const cat=catMap[id]||{};const cm={'저관여':'c1-저','중관여':'c1-중','고관여':'c1-고'};if(!cat.c1&&!cat.c2)return`<span class="cat-unset" onclick="event.stopPropagation();openCatDd('${id}',this)">+ 태깅</span>`;let h='<div class="cat-display" onclick="event.stopPropagation();openCatDd(\''+id+'\',this)">';if(cat.c1)h+=`<span class="cat-t1 ${cm[cat.c1]||''}">${cat.c1}</span>`;if(cat.c2)h+=`<span class="cat-t2">${cat.c2}</span>`;return h+'</div>';}
 
+function handleRangeChange(){
+  const val=document.getElementById('rangeSel').value;
+  const wrap=document.getElementById('customRangeWrap');
+  if(val==='custom'){
+    wrap.style.display='flex';
+    // 기본값: 오늘 기준 최근 14일
+    const today=new Date();
+    const from=new Date(today-14*86400000);
+    if(!document.getElementById('dateFrom').value)
+      document.getElementById('dateFrom').value=from.toISOString().slice(0,10);
+    if(!document.getElementById('dateTo').value)
+      document.getElementById('dateTo').value=today.toISOString().slice(0,10);
+  } else {
+    wrap.style.display='none';
+  }
+  applyFilter();
+}
+
 function applyFilter(){
   if(!allData.length)return;
-  const days=parseInt(document.getElementById('rangeSel').value);
+  const rangeVal=document.getElementById('rangeSel').value;
   curType=document.getElementById('typeSel').value;
-  const cutoff=days>0?new Date(Date.now()-days*86400*1000):new Date(0);
+  let cutoffStart=new Date(0),cutoffEnd=new Date();
+  if(rangeVal==='custom'){
+    const from=document.getElementById('dateFrom').value;
+    const to=document.getElementById('dateTo').value;
+    if(from) cutoffStart=new Date(from);
+    if(to){ cutoffEnd=new Date(to); cutoffEnd.setHours(23,59,59,999); }
+  } else {
+    const days=parseInt(rangeVal);
+    cutoffStart=days>0?new Date(Date.now()-days*86400*1000):new Date(0);
+  }
   filtered=allData.filter(d=>{
     if(excluded.has(d.id))return false;
-    const inRange=d.date>=cutoff;
-    let inType=curType==='all'||({short:d.dur<60,mid:d.dur>=60&&d.dur<180,long:d.dur>=180}[curType]??true);
+    const inRange=d.date>=cutoffStart&&d.date<=cutoffEnd;
+    const inType=curType==='all'||({short:d.dur<60,mid:d.dur>=60&&d.dur<180,long:d.dur>=180}[curType]??true);
     return inRange&&inType;
   });
   document.getElementById('filterInfo').textContent=filtered.length+'개 영상 집계 중'+(excluded.size>0?` (${excluded.size}개 제외됨)`:'');
@@ -453,31 +482,87 @@ function setSort(el){const k=el.dataset.k;if(sortKey===k)sortDir*=-1;else{sortKe
 const getSorted=()=>[...filtered].sort((a,b)=>sortKey==='date'?(a.date-b.date)*sortDir:((a[sortKey]||0)-(b[sortKey]||0))*sortDir);
 
 function renderSummary(){
-  if(!filtered.length){['s-views','s-imp','s-ctr','s-vr'].forEach(id=>document.getElementById(id).textContent='—');['b-views','b-imp','b-ctr','b-vr'].forEach(id=>document.getElementById(id).innerHTML='');return;}
-  const av=filtered.reduce((s,v)=>s+v.views,0)/filtered.length;
-  const ai=filtered.reduce((s,v)=>s+v.imp,0)/filtered.length;
-  const ac=filtered.reduce((s,v)=>s+v.ctr,0)/filtered.length;
-  const ar=filtered.reduce((s,v)=>s+v.vr,0)/filtered.length;
+  const ids=['s-views','s-imp','s-ctr','s-vr','s-subs'];
+  const bids=['b-views','b-imp','b-ctr','b-vr','b-subs'];
+  if(!filtered.length){
+    ids.forEach(id=>document.getElementById(id).textContent='—');
+    bids.forEach(id=>document.getElementById(id).innerHTML='');
+    return;
+  }
+  const avg=(arr,k)=>arr.reduce((s,v)=>s+(v[k]||0),0)/arr.length;
+  const sum=(arr,k)=>arr.reduce((s,v)=>s+(v[k]||0),0);
+
+  const av=avg(filtered,'views');
+  const ai=avg(filtered,'imp');
+  const ac=avg(filtered,'ctr');
+  const ar=avg(filtered,'vr');
+  const as=sum(filtered,'subs');
+
+  // 7. 풀 숫자 표시 (축약 없음)
+  document.getElementById('s-views').textContent=Math.round(av).toLocaleString();
+  document.getElementById('s-imp').textContent=Math.round(ai).toLocaleString();
+  document.getElementById('s-ctr').textContent=ac.toFixed(2)+'%';
+  document.getElementById('s-vr').textContent=ar.toFixed(2)+'%';
+  document.getElementById('s-subs').textContent=(as>=0?'+':'')+as.toLocaleString();
+
   const bk=curType==='all'?'all':curType,b=BENCH[bk],bl=BENCH_LABEL[bk];
-  document.getElementById('s-views').textContent=fmt(Math.round(av));
-  document.getElementById('s-imp').textContent=fmt(Math.round(ai));
-  document.getElementById('s-ctr').textContent=ac.toFixed(1)+'%';
-  document.getElementById('s-vr').textContent=ar.toFixed(1)+'%';
-  const bH=(cur,ref,rs)=>{const d=cur-ref,p=ref>0?((d/ref)*100).toFixed(1):0,up=d>=0;return`<span class="bench-label">${bl}</span>${rs} <span class="${up?'val-up':'val-dn'}">${up?'↑':'↓'}${Math.abs(p)}%</span>`;};
-  document.getElementById('b-views').innerHTML=bH(av,b.views,fmt(Math.round(b.views)));
-  document.getElementById('b-imp').innerHTML=bH(ai,b.imp,fmt(Math.round(b.imp)));
-  document.getElementById('b-ctr').innerHTML=bH(ac,b.ctr,b.ctr.toFixed(2)+'%');
-  document.getElementById('b-vr').innerHTML=bH(ar,b.vr,b.vr.toFixed(2)+'%');
+
+  // MoM 계산 (현재 기간과 동일한 길이의 직전 구간)
+  const rangeVal=document.getElementById('rangeSel').value;
+  const now=new Date();
+  let periodMs=0,cutoffStart=new Date(0);
+  if(rangeVal==='custom'){
+    const from=document.getElementById('dateFrom').value;
+    const to=document.getElementById('dateTo').value;
+    if(from&&to){
+      cutoffStart=new Date(from);
+      const cutoffEnd=new Date(to); cutoffEnd.setHours(23,59,59,999);
+      periodMs=cutoffEnd-cutoffStart;
+    }
+  } else {
+    const days=parseInt(rangeVal);
+    if(days>0){ periodMs=days*86400000; cutoffStart=new Date(now-periodMs); }
+  }
+  const momEnd=new Date(cutoffStart-1);
+  const momStart=periodMs>0?new Date(momEnd-periodMs):null;
+  const momData=momStart?allData.filter(d=>!excluded.has(d.id)&&d.date>=momStart&&d.date<=momEnd):[];
+
+  function diffBadge(cur,prev){
+    if(prev===null||prev===undefined||isNaN(prev)||prev===0)return'';
+    const d=cur-prev,p=((d/Math.abs(prev))*100).toFixed(1),up=d>=0;
+    return`<span class="${up?'val-up':'val-dn'}">${up?'↑':'↓'}${Math.abs(p)}%</span>`;
+  }
+
+  function buildBench(cur,ref,refStr,momVal){
+    const d=cur-ref,p=ref>0?((d/Math.abs(ref))*100).toFixed(1):0,up=d>=0;
+    let html=`<div class="bench-row"><span class="bench-label">${bl}</span>${refStr} <span class="${up?'val-up':'val-dn'}">${up?'↑':'↓'}${Math.abs(p)}%</span></div>`;
+    if(momVal!==null) html+=`<div class="bench-row"><span class="bench-label">MoM</span>${diffBadge(cur,momVal)||'<span style="color:var(--color-text3)">데이터 부족</span>'}</div>`;
+    return html;
+  }
+
+  const momAvgViews=momData.length?avg(momData,'views'):null;
+  const momAvgImp=momData.length?avg(momData,'imp'):null;
+  const momAvgCtr=momData.length?avg(momData,'ctr'):null;
+  const momAvgVr=momData.length?avg(momData,'vr'):null;
+  const momSumSubs=momData.length?sum(momData,'subs'):null;
+
+  document.getElementById('b-views').innerHTML=buildBench(av,b.views,Math.round(b.views).toLocaleString(),momAvgViews);
+  document.getElementById('b-imp').innerHTML=buildBench(ai,b.imp,Math.round(b.imp).toLocaleString(),momAvgImp);
+  document.getElementById('b-ctr').innerHTML=buildBench(ac,b.ctr,b.ctr.toFixed(2)+'%',momAvgCtr);
+  document.getElementById('b-vr').innerHTML=buildBench(ar,b.vr,b.vr.toFixed(2)+'%',momAvgVr);
+  let subsBench='';
+  if(momSumSubs!==null) subsBench+=`<div class="bench-row"><span class="bench-label">MoM</span>${diffBadge(as,momSumSubs)||'<span style="color:var(--color-text3)">데이터 부족</span>'}</div>`;
+  document.getElementById('b-subs').innerHTML=subsBench;
 }
 
 function renderTableHead(){
   const isLong=curType==='long';
   document.getElementById('tableHead').innerHTML=`<tr>
     <th style="width:26px;">✕</th><th style="width:52px;">업로드일</th><th style="width:48px;">평가</th>
-    <th style="width:200px;">제목</th>${isLong?'<th style="width:90px;">카테고리</th>':''}
-    <th style="width:38px;">길이</th><th style="width:64px;">조회수</th><th style="width:50px;">조회율%</th>
-    <th style="width:60px;">노출수</th><th style="width:48px;">CTR%</th><th style="width:52px;">AVD</th>
-    <th style="width:46px;">신규</th><th style="width:46px;">재방문</th><th style="width:44px;">구독자</th>
+    <th style="width:180px;">제목</th>${isLong?'<th style="width:90px;">카테고리</th>':''}
+    <th style="width:80px;">조회수</th><th style="width:38px;">길이</th><th style="width:52px;">AVD</th>
+    <th style="width:58px;">조회율%</th><th style="width:82px;">노출수</th><th style="width:54px;">CTR%</th>
+    <th style="width:72px;">신규</th><th style="width:72px;">재방문</th><th style="width:44px;">구독자</th>
   </tr>`;
 }
 
@@ -486,20 +571,21 @@ function renderTable(){
   const mxV=Math.max(...sv.map(v=>v.views),1),mxC=Math.max(...sv.map(v=>v.ctr),1),mxI=Math.max(...sv.map(v=>v.imp),1);
   const na='<span style="color:var(--color-text3);font-size:10px;">집계중</span>';
   const durStr=v=>v.dur<=0?'—':v.dur<60?v.dur+'초':v.dur<3600?`${Math.floor(v.dur/60)}:${String(v.dur%60).padStart(2,'0')}`:`${Math.floor(v.dur/3600)}:${String(Math.floor((v.dur%3600)/60)).padStart(2,'0')}`;
+  const full=n=>n==null||isNaN(n)?'—':Math.round(n).toLocaleString();
   document.getElementById('tbody').innerHTML=sv.map(v=>`<tr>
     <td><button class="btn-ex" onclick="exVideo('${v.id}')">✕</button></td>
     <td class="td-date">${v.dateDisp}</td>
     <td style="text-align:center;">${scoreVideo(v)}</td>
-    <td class="td-title" title="${v.title}">${v.title}</td>
+    <td class="td-title"><a href="https://www.youtube.com/watch?v=${v.id}" target="_blank" rel="noopener" title="${v.title}" style="color:inherit;text-decoration:none;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${v.title}</a></td>
     ${isLong?`<td>${catHTML(v.id)}</td>`:''}
+    <td class="td-r">${full(v.views)}<div class="mini-bar-wrap"><div class="mini-bar" style="width:${Math.round(v.views/mxV*100)}%;background:#378ADD;"></div></div></td>
     <td class="td-r" style="font-size:10px;">${durStr(v)}</td>
-    <td class="td-r">${fmt(v.views)}<div class="mini-bar-wrap"><div class="mini-bar" style="width:${Math.round(v.views/mxV*100)}%;background:#378ADD;"></div></div></td>
-    <td class="td-r">${v.vr>0?v.vr.toFixed(1)+'%':na}</td>
-    <td class="td-r">${v.imp>0?fmt(v.imp):na}<div class="mini-bar-wrap"><div class="mini-bar" style="width:${Math.round(v.imp/mxI*100)}%;background:#BA7517;"></div></div></td>
-    <td class="td-r">${v.ctr>0?v.ctr.toFixed(1)+'%':na}<div class="mini-bar-wrap"><div class="mini-bar" style="width:${Math.round(v.ctr/mxC*100)}%;background:#1D9E75;"></div></div></td>
     <td class="td-r">${fmtSec(Math.round(v.avdSec))}</td>
-    <td class="td-r">${v.newV>0?fmt(v.newV):na}</td>
-    <td class="td-r">${v.ret>0?fmt(v.ret):na}</td>
+    <td class="td-r">${v.vr>0?v.vr.toFixed(2)+'%':na}</td>
+    <td class="td-r">${v.imp>0?full(v.imp):na}<div class="mini-bar-wrap"><div class="mini-bar" style="width:${Math.round(v.imp/mxI*100)}%;background:#BA7517;"></div></div></td>
+    <td class="td-r">${v.ctr>0?v.ctr.toFixed(2)+'%':na}<div class="mini-bar-wrap"><div class="mini-bar" style="width:${Math.round(v.ctr/mxC*100)}%;background:#1D9E75;"></div></div></td>
+    <td class="td-r">${v.newV>0?full(v.newV):na}</td>
+    <td class="td-r">${v.ret>0?full(v.ret):na}</td>
     <td class="td-r"><span style="color:${v.subs>=50?'var(--red)':v.subs>0?'var(--color-text2)':'var(--blue)'}">${v.subs>=0?'+':''}${v.subs}</span></td>
   </tr>`).join('')||`<tr><td colspan="${isLong?14:13}" style="text-align:center;padding:24px;color:var(--color-text3);">해당 기간 데이터 없음</td></tr>`;
 }
@@ -509,7 +595,7 @@ function renderCharts(){
   const colors=['#378ADD','#1D9E75','#7F77DD','#D85A30','#D4537E','#BA7517','#0F6E56','#993C1D'];
   const opts=(xt,yt,tip)=>({responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:tip}}},scales:{x:{title:{display:true,text:xt,font:{size:9}},ticks:{font:{size:9},callback:v=>fmt(v)},grid:{color:'rgba(128,128,128,0.08)'}},y:{title:{display:true,text:yt,font:{size:9}},ticks:{font:{size:9}},grid:{color:'rgba(128,128,128,0.08)'}}}});
   cImpInst=new Chart(document.getElementById('cImpCtr'),{type:'scatter',data:{datasets:filtered.map((v,i)=>({data:[{x:v.imp,y:v.ctr}],backgroundColor:colors[i%colors.length]+'BB',pointRadius:5}))},options:opts('노출수','CTR (%)',ctx=>`${filtered[ctx.datasetIndex]?.title?.slice(0,18)} | 노출:${fmt(ctx.parsed.x)} CTR:${ctx.parsed.y.toFixed(1)}%`)});
-  cSInst=new Chart(document.getElementById('cS'),{type:'scatter',data:{datasets:filtered.map((v,i)=>({data:[{x:v.ctr,y:v.vr}],backgroundColor:colors[i%colors.length]+'BB',pointRadius:5}))},options:{...opts('CTR (%)','평균 조회율 (%)',ctx=>`${filtered[ctx.datasetIndex]?.title?.slice(0,18)} | CTR:${ctx.parsed.x.toFixed(1)}% 조회율:${ctx.parsed.y.toFixed(1)}%`),scales:{x:{title:{display:true,text:'CTR (%)',font:{size:9}},ticks:{font:{size:9}},grid:{color:'rgba(128,128,128,0.08)'}},y:{title:{display:true,text:'평균 조회율 (%)',font:{size:9}},ticks:{font:{size:9}},grid:{color:'rgba(128,128,128,0.08)'}}}}});
+  cSInst=new Chart(document.getElementById('cS'),{type:'scatter',data:{datasets:filtered.map((v,i)=>({data:[{x:v.vr,y:v.ctr}],backgroundColor:colors[i%colors.length]+'BB',pointRadius:5}))},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${filtered[ctx.datasetIndex]?.title?.slice(0,18)} | 조회율:${ctx.parsed.x.toFixed(1)}% CTR:${ctx.parsed.y.toFixed(1)}%`}}},scales:{x:{title:{display:true,text:'평균 조회율 (%)',font:{size:9}},ticks:{font:{size:9}},grid:{color:'rgba(128,128,128,0.08)'}},y:{title:{display:true,text:'CTR (%)',font:{size:9}},ticks:{font:{size:9}},grid:{color:'rgba(128,128,128,0.08)'}}}}});
 }
 
 function renderInsights(){
@@ -521,15 +607,6 @@ function renderInsights(){
     <div class="icard"><h4><i class="ti ti-eye"></i>평균조회율 TOP</h4>${top('vr').map(v=>row(v,v.vr.toFixed(1)+'%')).join('')}</div>
     <div class="icard"><h4><i class="ti ti-user-plus"></i>구독자 TOP</h4>${top('subs').map(v=>row(v,'+'+v.subs)).join('')}</div>
   `;
-}
-
-// ── 새로고침
-function refreshDashboard(){
-  if(!allData.length)return;
-  applyFilter();
-  document.getElementById('lastUpdated').textContent=
-    document.getElementById('lastUpdated').textContent.replace(/\d{2}:\d{2}.*$/,'')+
-    new Date().toLocaleString('ko-KR',{hour:'2-digit',minute:'2-digit'})+' 새로고침';
 }
 
 document.getElementById('weekLabel').textContent=getWeekLabel();
