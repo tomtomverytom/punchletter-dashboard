@@ -49,15 +49,6 @@
     .header-sub { font-size: 12px; color: var(--color-text3); }
     .header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
-    /* 공유 링크 */
-    .share-box { background: var(--color-bg2); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 12px 14px; margin-bottom: 16px; display: none; }
-    .share-box-title { font-size: 11px; font-weight: 600; color: var(--color-text2); margin-bottom: 8px; display: flex; align-items: center; gap: 5px; }
-    .share-url-wrap { display: flex; gap: 8px; align-items: center; }
-    .share-url-input { flex: 1; border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 7px 10px; font-size: 11px; font-family: var(--font-mono); color: var(--color-text2); background: var(--color-bg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .share-url-input:focus { outline: none; }
-    .share-copied { font-size: 10px; color: var(--green); font-weight: 500; opacity: 0; transition: opacity 0.3s; white-space: nowrap; }
-    .share-note { font-size: 10px; color: var(--color-text3); margin-top: 6px; }
-
     /* 공유 뷰 배너 */
     .shared-banner { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius-md); padding: 10px 14px; margin-bottom: 16px; font-size: 12px; color: #1e40af; display: flex; align-items: center; gap: 8px; }
     @media (prefers-color-scheme: dark) { .shared-banner { background: #1e3a5f; border-color: #3b82f6; color: #93c5fd; } }
@@ -220,8 +211,8 @@
       <div class="header-sub" id="lastUpdated">CSV 업로드 또는 데이터 붙여넣기로 시작하세요</div>
     </div>
     <div class="header-actions">
-      <button class="btn" id="btnShare" style="display:none;" onclick="generateShareLink()">
-        <i class="ti ti-share"></i> 공유 링크 생성
+      <button class="btn" id="btnRefresh" style="display:none;" onclick="refreshDashboard()">
+        <i class="ti ti-refresh"></i> 새로고침
       </button>
     </div>
   </div>
@@ -230,17 +221,6 @@
   <div class="shared-banner" id="sharedBanner" style="display:none;">
     <i class="ti ti-info-circle"></i>
     <span id="sharedBannerText">공유된 대시보드입니다.</span>
-  </div>
-
-  <!-- 공유 링크 박스 -->
-  <div class="share-box" id="shareBox">
-    <div class="share-box-title"><i class="ti ti-link"></i> 팀원 공유 링크</div>
-    <div class="share-url-wrap">
-      <input class="share-url-input" id="shareUrlInput" readonly>
-      <button class="btn btn-primary" onclick="copyShareLink()"><i class="ti ti-copy"></i> 복사</button>
-    </div>
-    <span class="share-copied" id="shareCopied">✓ 클립보드에 복사됐어요!</span>
-    <div class="share-note">이 링크를 팀원에게 공유하세요. 링크를 열면 현재 데이터가 채워진 대시보드를 바로 볼 수 있어요.</div>
   </div>
 
   <!-- 필터 -->
@@ -428,7 +408,7 @@ function loadData(data,src,isShared){
   document.getElementById('lastUpdated').textContent=`${src} · ${new Date().toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})} 로드 · 총 ${allData.length}개 영상`;
   document.getElementById('mainContent').style.display='block';
   document.getElementById('emptyState').style.display='none';
-  document.getElementById('btnShare').style.display='flex';
+  document.getElementById('btnRefresh').style.display='flex';
   // 공유 링크로 접속한 경우 배너만 표시 (입력창은 유지 — 팀원도 자유롭게 데이터 교체 가능)
   if(isShared){
     const banner=document.getElementById('sharedBanner');
@@ -543,123 +523,14 @@ function renderInsights(){
   `;
 }
 
-// ── LZ-String 압축 (URL 길이 최소화)
-const LZS=(function(){
-  const f=String.fromCharCode,_k='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
-  function compress(s){
-    if(s==null)return'';
-    let r=[],o={},p='',c,l=2,n=3,q=0,g=0,t;
-    for(let i=0;i<s.length;i++){
-      c=s[i];if(!(c in o)){o[c]=l++;if(l===3){t=c.charCodeAt(0);for(let b=0;b<16;b++){q=q<<1|(t>>15-b&1);if(++g===6){g=0;r.push(_k[q]);q=0;}}}}
-      let a=p+c;if(a in o){p=a;}else{
-        if(p in o){q=q<<3|1;g+=3;}else{t=p.charCodeAt(0);q=q<<3|(t>255?2:1);g+=3;if(t>255){for(let b=0;b<16;b++){q=q<<1|(t>>15-b&1);if(++g===6){g=0;r.push(_k[q]);q=0;}}}else{for(let b=0;b<8;b++){q=q<<1|(t>>7-b&1);if(++g===6){g=0;r.push(_k[q]);q=0;}}}}
-        while(g>=6){r.push(_k[q>>g-6&63]);g-=6;}
-        if(l===n){n*=2;q<<=3;g+=3;}
-        o[a]=l++;p=c;
-      }
-    }
-    if(p!==''){if(p in o){q=q<<3|1;g+=3;}else{t=p.charCodeAt(0);q=q<<3|(t>255?2:1);g+=3;if(t>255){for(let b=0;b<16;b++){q=q<<1|(t>>15-b&1);if(++g===6){g=0;r.push(_k[q]);q=0;}}}else{for(let b=0;b<8;b++){q=q<<1|(t>>7-b&1);if(++g===6){g=0;r.push(_k[q]);q=0;}}}}while(g>=6){r.push(_k[q>>g-6&63]);g-=6;}}
-    q=q<<3;g+=3;while(g>=6){r.push(_k[q>>g-6&63]);g-=6;}
-    r.push(_k[q<<6-g&63]);r.push(_k[64]);return r.join('');
-  }
-  function decompress(s){
-    if(s==null||s==='')return'';
-    let r=[],o=[0,1,2],p,l=3,n=4,b=0,e,c='',g=0,m=function(){let v=_k.indexOf(s[b++]);if(v===64)return null;return v;};
-    let bits=0,numBits=0,getB=function(){while(numBits<1){let v=m();if(v===null)return null;bits=(bits<<6)|v;numBits+=6;}numBits--;return(bits>>numBits)&1;};
-    let getN=function(n){let v=0;for(let i=0;i<n;i++){let bt=getB();if(bt===null)return null;v=(v<<1)|bt;}return v;};
-    let t=getN(3);
-    if(t===0){e=getN(8);if(e===null)return'';c=f(e);}
-    else if(t===1){e=getN(16);if(e===null)return'';c=f(e);}
-    else return'';
-    o[3]=c;r.push(c);p=c;
-    while(true){
-      t=getN(Math.ceil(Math.log2(l+1)));
-      if(t===null)break;
-      if(t===0){e=getN(8);if(e===null)break;c=f(e);if(o.length===l){l*=2;}o.push(c);}
-      else if(t===1){e=getN(16);if(e===null)break;c=f(e);if(o.length===l){l*=2;}o.push(c);}
-      else if(t===2)break;
-      else{let en=t-3;c=en<o.length?o[en]:p+p[0];if(o.length===l){l*=2;}o.push(p+c[0]);}
-      r.push(c);p=c;
-    }
-    return r.join('');
-  }
-  return{compress,decompress};
-})();
-
-// ── 공유 링크 생성 (LZ 압축 적용)
-function generateShareLink(){
+// ── 새로고침
+function refreshDashboard(){
   if(!allData.length)return;
-  // 핵심 데이터만 최소화 (소수점 1자리로 반올림해 용량 추가 절감)
-  const payload={
-    v:2,
-    t: new Date().toLocaleString('ko-KR',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}),
-    d: allData.map(r=>[
-      r.id, r.title,
-      r.date instanceof Date && r.date.getTime()!==0 ? r.date.toISOString().slice(0,10) : '',
-      r.dur, Math.round(r.avdSec), +r.vr.toFixed(1),
-      r.newV, r.ret, r.views, +r.wh.toFixed(2),
-      r.subs, +r.imp, +r.ctr.toFixed(2)
-    ])
-  };
-  try {
-    const json=JSON.stringify(payload);
-    // LZ 압축 후 URL-safe Base64 인코딩
-    const compressed=LZS.compress(json);
-    const b64=btoa(compressed).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
-    const url=`${window.location.origin}${window.location.pathname}?d=${b64}`;
-    document.getElementById('shareUrlInput').value=url;
-    document.getElementById('shareBox').style.display='block';
-    document.getElementById('shareBox').scrollIntoView({behavior:'smooth',block:'nearest'});
-    // 길이 안내
-    const kb=(url.length/1024).toFixed(1);
-    document.querySelector('.share-note').textContent=`URL 길이: ${url.length}자 (${kb}KB) · 슬랙/카카오톡 공유 가능`;
-  } catch(e){alert('링크 생성 오류: '+e.message);}
+  applyFilter();
+  document.getElementById('lastUpdated').textContent=
+    document.getElementById('lastUpdated').textContent.replace(/\d{2}:\d{2}.*$/,'')+
+    new Date().toLocaleString('ko-KR',{hour:'2-digit',minute:'2-digit'})+' 새로고침';
 }
-
-function copyShareLink(){
-  const input=document.getElementById('shareUrlInput');
-  const show=()=>{const el=document.getElementById('shareCopied');el.style.opacity='1';setTimeout(()=>el.style.opacity='0',2500);};
-  navigator.clipboard.writeText(input.value).then(show).catch(()=>{input.select();document.execCommand('copy');show();});
-}
-
-// ── 페이지 로드 시 URL에서 공유 데이터 복원
-(function(){
-  const params=new URLSearchParams(window.location.search);
-  const raw=params.get('d');
-  if(!raw)return;
-  try{
-    // URL-safe Base64 → 일반 Base64 → LZ 압축 해제
-    const b64=raw.replace(/-/g,'+').replace(/_/g,'/');
-    const padded=b64+(b64.length%4?'='.repeat(4-b64.length%4):'');
-    const compressed=atob(padded);
-    const json=LZS.decompress(compressed);
-    const payload=JSON.parse(json);
-    // v2: 배열 형식, v1 이전: 객체 형식 (하위 호환)
-    let data;
-    if(payload.v===2){
-      data=payload.d.map(r=>({
-        id:r[0], title:r[1],
-        date: r[2]?new Date(r[2]):new Date(0),
-        dateDisp: r[2]?(()=>{const dd=new Date(r[2]);return`${dd.getMonth()+1}/${dd.getDate()}`;})():'—',
-        dur:r[3]||0, avdSec:r[4]||0, vr:r[5]||0,
-        newV:r[6]||0, ret:r[7]||0, views:r[8]||0,
-        wh:r[9]||0, subs:r[10]||0, imp:r[11]||0, ctr:r[12]||0
-      }));
-    } else {
-      data=(payload.data||[]).map(r=>({
-        id:r.id, title:r.title,
-        date: r.dateStr?new Date(r.dateStr):new Date(0),
-        dateDisp: r.dateStr?(()=>{const dd=new Date(r.dateStr);return`${dd.getMonth()+1}/${dd.getDate()}`;})():'—',
-        dur:r.dur||0, avdSec:r.avdSec||0, vr:r.vr||0,
-        newV:r.newV||0, ret:r.ret||0, views:r.views||0,
-        wh:r.wh||0, subs:r.subs||0, imp:r.imp||0, ctr:r.ctr||0
-      }));
-    }
-    if(!data.length)return;
-    const src=(payload.t||payload.generatedAt)?`${payload.t||payload.generatedAt} 기준`:'공유 링크';
-    loadData(data, src, true);
-  } catch(e){console.warn('공유 링크 파싱 오류:',e);}
-})();
 
 document.getElementById('weekLabel').textContent=getWeekLabel();
 </script>
